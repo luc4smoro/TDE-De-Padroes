@@ -5,27 +5,47 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Consulta implements Serializable {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L; // Manter para compatibilidade de serialização
 
     private int id_consulta;
     private int id_pet;
     private int id_veterinario;
-    private LocalDateTime data;
-    private String hora;
+    private LocalDateTime data; // Data e hora agendada
+    private String hora; // Hora agendada (redundante com LocalDateTime, mas mantido por compatibilidade)
+    private StatusConsulta status;
 
+    // Novos campos para o fluxo de estados
+    private LocalDateTime dataInicioReal; // Data e hora real de início da consulta
+    private LocalDateTime dataFimReal;    // Data e hora real de fim da consulta
+    private String observacoes;           // Observações rápidas durante o atendimento ou gerais
+    private String motivoCancelamento;    // Motivo se a consulta for cancelada
+    private int contadorReagendamentos;   // Quantas vezes a consulta foi reagendada
+    private LocalDateTime dataCancelamento; // Data e hora do cancelamento
 
-    public Consulta() {}
-
+    public Consulta() {
+        this.status = StatusConsulta.CRIADA;
+        this.observacoes = "";
+        this.motivoCancelamento = "";
+        this.contadorReagendamentos = 0;
+    }
 
     public Consulta(int id_consulta, int id_pet, int id_veterinario, LocalDateTime data, String hora) {
+        this(id_consulta, id_pet, id_veterinario, data, hora, StatusConsulta.CRIADA);
+    }
+
+    public Consulta(int id_consulta, int id_pet, int id_veterinario, LocalDateTime data, String hora, StatusConsulta status) {
         this.id_consulta = id_consulta;
         this.id_pet = id_pet;
         this.id_veterinario = id_veterinario;
         this.data = data;
         this.hora = hora;
+        this.status = status;
+        this.observacoes = "";
+        this.motivoCancelamento = "";
+        this.contadorReagendamentos = 0;
     }
 
-
+    // Getters e Setters existentes
     public int getId_consulta() { return id_consulta; }
     public void setId_consulta(int id_consulta) { this.id_consulta = id_consulta; }
 
@@ -41,11 +61,36 @@ public class Consulta implements Serializable {
     public String getHora() { return hora; }
     public void setHora(String hora) { this.hora = hora; }
 
+    public StatusConsulta getStatus() { return status; }
+    public void setStatus(StatusConsulta status) { this.status = status; }
+
+    // Getters e Setters para os novos campos
+    public LocalDateTime getDataInicioReal() { return dataInicioReal; }
+    public void setDataInicioReal(LocalDateTime dataInicioReal) { this.dataInicioReal = dataInicioReal; }
+
+    public LocalDateTime getDataFimReal() { return dataFimReal; }
+    public void setDataFimReal(LocalDateTime dataFimReal) { this.dataFimReal = dataFimReal; }
+
+    public String getObservacoes() { return observacoes; }
+    public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
+
+    public String getMotivoCancelamento() { return motivoCancelamento; }
+    public void setMotivoCancelamento(String motivoCancelamento) { this.motivoCancelamento = motivoCancelamento; }
+
+    public int getContadorReagendamentos() { return contadorReagendamentos; }
+    public void setContadorReagendamentos(int contadorReagendamentos) { this.contadorReagendamentos = contadorReagendamentos; }
+    public void incrementarContadorReagendamentos() { this.contadorReagendamentos++; }
+
+    public LocalDateTime getDataCancelamento() { return dataCancelamento; }
+    public void setDataCancelamento(LocalDateTime dataCancelamento) { this.dataCancelamento = dataCancelamento; }
+
+
     @Override
     public String toString() {
-        return String.format("Consulta ID: %d | Pet: %d | Veterinário: %d | Data: %s | Hora: %s",
+        return String.format("Consulta ID: %d | Pet: %d | Veterinário: %d | Data: %s | Hora: %s | Status: %s",
                 id_consulta, id_pet, id_veterinario,
                 data != null ? data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "N/A",
-                hora);
+                hora,
+                status.getDescricao());
     }
 }

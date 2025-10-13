@@ -29,12 +29,25 @@ public class ConsultaDataManager {
     @SuppressWarnings("unchecked")
     public List<Consulta> carregarConsultas() throws IOException, ClassNotFoundException {
         File arquivo = new File(ARQUIVO_DE_DADOS);
-        if (!arquivo.exists()) {
+        if (!arquivo.exists() || arquivo.length() == 0) { // Adicionado verificação de arquivo vazio
             return new ArrayList<>();
         }
 
+        List<Consulta> consultasCarregadas = new ArrayList<>();
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(ARQUIVO_DE_DADOS))) {
-            return (List<Consulta>) ois.readObject();
+            consultasCarregadas = (List<Consulta>) ois.readObject();
+        } catch (EOFException e) {
+            // Arquivo pode estar vazio ou corrompido, retorna lista vazia
+            System.err.println("EOFException ao carregar consultas: " + e.getMessage());
+            return new ArrayList<>();
         }
+
+        // Garante que todas as consultas carregadas tenham um status não nulo
+        for (Consulta consulta : consultasCarregadas) {
+            if (consulta.getStatus() == null) {
+                consulta.setStatus(StatusConsulta.CRIADA); // Define um status padrão
+            }
+        }
+        return consultasCarregadas;
     }
 }
