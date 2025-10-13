@@ -10,8 +10,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
-import java.io.*;
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.Optional;
 
 /**
@@ -37,8 +36,7 @@ public class TutorController extends Application {
     /** Tabela que exibe os tutores cadastrados. */
     private TableView<Tutor> table = new TableView<>();
 
-    /** Nome do arquivo onde os dados dos tutores são salvos. */
-    private final String ARQUIVO = "tutores.dat";
+    private final TutorDataManager dataManager = TutorDataManager.getInstance();
 
     /**
      * Método principal que inicia a aplicação.
@@ -229,10 +227,10 @@ public class TutorController extends Application {
      * Salva a lista de tutores no arquivo binário.
      */
     private void salvarTutores() {
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(ARQUIVO))) {
-            out.writeObject(new ArrayList<>(listaTutores));
+        try {
+            dataManager.salvarTutores(listaTutores);
         } catch (IOException e) {
-            e.printStackTrace();
+            mostrarAlerta("Erro", "Falha ao salvar os dados: " + e.getMessage());
         }
     }
 
@@ -240,21 +238,10 @@ public class TutorController extends Application {
      * Carrega a lista de tutores do arquivo binário, se existir.
      */
     private void carregarTutores() {
-        File file = new File(ARQUIVO);
-        if (file.exists()) {
-            try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
-                Object obj = in.readObject();
-                if (obj instanceof ArrayList<?>) {
-                    ArrayList<?> list = (ArrayList<?>) obj;
-                    for (Object o : list) {
-                        if (o instanceof Tutor) {
-                            listaTutores.add((Tutor) o);
-                        }
-                    }
-                }
-            } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
-            }
+        try {
+            listaTutores.setAll(dataManager.carregarTutores());
+        } catch (IOException | ClassNotFoundException e) {
+            mostrarAlerta("Erro", "Falha ao carregar os dados: " + e.getMessage());
         }
     }
 }

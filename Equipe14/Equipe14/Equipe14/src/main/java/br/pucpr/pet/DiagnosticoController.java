@@ -11,22 +11,11 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-import java.io.*;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Optional;
 
-/**
- * Interface gráfica para o cadastro e gerenciamento de Diagnósticos.
- * Permite adicionar, editar, remover e listar diagnósticos em uma tabela.
- * Os dados são salvos e carregados de um arquivo local binário.
- *
- * Construído sem FXML, programaticamente em JavaFX.
- * Utiliza uma classe de modelo 'Diagnostico' simples, sem JavaFX Properties.
- *
- * @author SeuNomeAqui
- */
 public class DiagnosticoController extends Application {
 
     private final ObservableList<Diagnostico> listaDiagnosticos = FXCollections.observableArrayList();
@@ -41,7 +30,7 @@ public class DiagnosticoController extends Application {
 
     private TableView<Diagnostico> table = new TableView<>();
 
-    private final String ARQUIVO = "diagnosticos.dat";
+    private final DiagnosticoDataManager dataManager = DiagnosticoDataManager.getInstance();
     private int nextId = 1; // Para simular auto-incremento de ID
 
     public static void main(String[] args) {
@@ -101,7 +90,6 @@ public class DiagnosticoController extends Application {
         form.getChildren().add(botoes);
 
         // --- Configuração das colunas da tabela ---
-        // PropertyValueFactory ainda funciona com getters tradicionais (não Properties)
         TableColumn<Diagnostico, Integer> colIdDiagnostico = new TableColumn<>("ID Diagnóstico");
         colIdDiagnostico.setCellValueFactory(new PropertyValueFactory<>("id_diagnostico"));
 
@@ -152,9 +140,6 @@ public class DiagnosticoController extends Application {
         stage.show();
     }
 
-    /**
-     * Preenche os campos de entrada com os dados do diagnóstico selecionado na tabela.
-     */
     private void preencherCampos() {
         Diagnostico diagnostico = table.getSelectionModel().getSelectedItem();
         if (diagnostico != null) {
@@ -167,9 +152,6 @@ public class DiagnosticoController extends Application {
         }
     }
 
-    /**
-     * Adiciona um novo diagnóstico à lista e salva no arquivo.
-     */
     private void adicionarDiagnostico() {
         if (validarCampos()) {
             try {
@@ -179,14 +161,12 @@ public class DiagnosticoController extends Application {
                 String tratamento = tratamentoArea.getText().trim();
                 String medicamentosPrescritos = medicamentosArea.getText().trim();
 
-                // Garante que o ID é único
                 if (listaDiagnosticos.stream().anyMatch(d -> d.getId_diagnostico() == nextId)) {
                     nextId = listaDiagnosticos.stream().mapToInt(Diagnostico::getId_diagnostico).max().orElse(0) + 1;
                 }
 
-                // Cria o novo objeto Diagnostico (sem properties)
                 Diagnostico novoDiagnostico = new Diagnostico(nextId++, idConsulta, nomeDiagnostico, dataDiagnostico, tratamento, medicamentosPrescritos);
-                listaDiagnosticos.add(novoDiagnostico); // Adiciona na ObservableList
+                listaDiagnosticos.add(novoDiagnostico);
                 salvarDiagnosticos();
                 limparCampos();
                 mostrarAlerta("Sucesso", "Diagnóstico adicionado com sucesso!");
@@ -199,22 +179,18 @@ public class DiagnosticoController extends Application {
         }
     }
 
-    /**
-     * Edita os dados de um diagnóstico selecionado na tabela.
-     */
     private void editarDiagnostico() {
         Diagnostico selecionado = table.getSelectionModel().getSelectedItem();
         if (selecionado != null) {
             if (validarCampos()) {
                 try {
-                    // Atualiza os dados do objeto selecionado diretamente
                     selecionado.setId_consulta(Integer.parseInt(idConsultaField.getText().trim()));
                     selecionado.setNomeDiagnostico(nomeDiagnosticoField.getText().trim());
                     selecionado.setDataDiagnostico(dataDiagnosticoPicker.getValue());
                     selecionado.setTratamento(tratamentoArea.getText().trim());
                     selecionado.setMedicamentosPrescritos(medicamentosArea.getText().trim());
 
-                    table.refresh(); // FORÇA a TableView a redesenhar a linha editada
+                    table.refresh();
                     salvarDiagnosticos();
                     limparCampos();
                     mostrarAlerta("Sucesso", "Diagnóstico editado com sucesso!");
@@ -230,16 +206,13 @@ public class DiagnosticoController extends Application {
         }
     }
 
-    /**
-     * Remove o diagnóstico selecionado da tabela após confirmação do usuário.
-     */
     private void removerDiagnostico() {
         Diagnostico selecionado = table.getSelectionModel().getSelectedItem();
         if (selecionado != null) {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Deseja remover o diagnóstico de '" + selecionado.getNomeDiagnostico() + "'?", ButtonType.YES, ButtonType.NO);
             Optional<ButtonType> result = alert.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.YES) {
-                listaDiagnosticos.remove(selecionado); // Remove da ObservableList
+                listaDiagnosticos.remove(selecionado);
                 salvarDiagnosticos();
                 limparCampos();
                 mostrarAlerta("Sucesso", "Diagnóstico removido com sucesso!");
@@ -249,9 +222,6 @@ public class DiagnosticoController extends Application {
         }
     }
 
-    /**
-     * Limpa os campos de entrada e deseleciona a tabela.
-     */
     private void limparCampos() {
         idDiagnosticoField.clear();
         idConsultaField.clear();
@@ -262,11 +232,6 @@ public class DiagnosticoController extends Application {
         table.getSelectionModel().clearSelection();
     }
 
-    /**
-     * Valida os campos de entrada do formulário.
-     *
-     * @return true se todos os campos forem válidos, false caso contrário.
-     */
     private boolean validarCampos() {
         StringBuilder erros = new StringBuilder();
 
@@ -306,12 +271,6 @@ public class DiagnosticoController extends Application {
         return true;
     }
 
-    /**
-     * Exibe uma janela de alerta com uma mensagem.
-     *
-     * @param titulo   Título da janela.
-     * @param mensagem Mensagem a ser exibida.
-     */
     private void mostrarAlerta(String titulo, String mensagem) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(titulo);
@@ -320,43 +279,25 @@ public class DiagnosticoController extends Application {
         alert.showAndWait();
     }
 
-    /**
-     * Salva a lista de diagnósticos no arquivo binário.
-     */
     private void salvarDiagnosticos() {
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(ARQUIVO))) {
-            out.writeObject(new ArrayList<>(listaDiagnosticos));
+        try {
+            dataManager.salvarDiagnosticos(listaDiagnosticos);
         } catch (IOException e) {
-            System.err.println("Erro ao salvar diagnósticos: " + e.getMessage());
-            mostrarAlerta("Erro de Salvar", "Não foi possível salvar os dados dos diagnósticos.");
+            mostrarAlerta("Erro de Salvar", "Não foi possível salvar os dados dos diagnósticos: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    /**
-     * Carrega a lista de diagnósticos do arquivo binário, se existir.
-     */
-    @SuppressWarnings("unchecked")
     private void carregarDiagnosticos() {
-        File file = new File(ARQUIVO);
-        if (file.exists() && file.length() > 0) {
-            try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
-                Object obj = in.readObject();
-                if (obj instanceof ArrayList<?>) {
-                    ArrayList<Diagnostico> loadedList = (ArrayList<Diagnostico>) obj;
-                    listaDiagnosticos.setAll(loadedList);
-                    nextId = listaDiagnosticos.stream()
-                            .mapToInt(Diagnostico::getId_diagnostico)
-                            .max()
-                            .orElse(0) + 1;
-                }
-            } catch (EOFException e) {
-                System.out.println("Arquivo de diagnósticos vazio.");
-            } catch (IOException | ClassNotFoundException e) {
-                System.err.println("Erro ao carregar diagnósticos: " + e.getMessage());
-                mostrarAlerta("Erro de Carregamento", "Não foi possível carregar os dados dos diagnósticos.");
-                e.printStackTrace();
-            }
+        try {
+            listaDiagnosticos.setAll(dataManager.carregarDiagnosticos());
+            nextId = listaDiagnosticos.stream()
+                    .mapToInt(Diagnostico::getId_diagnostico)
+                    .max()
+                    .orElse(0) + 1;
+        } catch (IOException | ClassNotFoundException e) {
+            mostrarAlerta("Erro de Carregamento", "Não foi possível carregar os dados dos diagnósticos: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

@@ -1,6 +1,5 @@
 package br.pucpr.pet;
 
-
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -11,8 +10,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
-import java.io.*;
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.Optional;
 
 public class VeterinarioController extends Application {
@@ -25,7 +23,7 @@ public class VeterinarioController extends Application {
     private TextField especialidadeField = new TextField();
     private TableView<Veterinario> table = new TableView<>();
 
-    private final String ARQUIVO = "veterinarios.dat";
+    private final VeterinarioDataManager dataManager = VeterinarioDataManager.getInstance();
 
     public static void main(String[] args) {
         launch(args);
@@ -171,56 +169,18 @@ public class VeterinarioController extends Application {
     }
 
     private void salvarVeterinarios() {
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(ARQUIVO))) {
-            out.writeObject(new ArrayList<>(listaVeterinarios));
+        try {
+            dataManager.salvarVeterinarios(listaVeterinarios);
         } catch (IOException e) {
-            e.printStackTrace();
+            mostrarAlerta("Erro", "Falha ao salvar os dados: " + e.getMessage());
         }
     }
 
     private void carregarVeterinarios() {
-        File file = new File(ARQUIVO);
-        if (file.exists()) {
-            try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
-                Object obj = in.readObject();
-                if (obj instanceof ArrayList<?>) {
-                    ArrayList<?> list = (ArrayList<?>) obj;
-                    for (Object o : list) {
-                        if (o instanceof Veterinario) {
-                            listaVeterinarios.add((Veterinario) o);
-                        }
-                    }
-                }
-            } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
-            }
+        try {
+            listaVeterinarios.setAll(dataManager.carregarVeterinarios());
+        } catch (IOException | ClassNotFoundException e) {
+            mostrarAlerta("Erro", "Falha ao carregar os dados: " + e.getMessage());
         }
-    }
-
-    // Classe interna se preferir deixar tudo no mesmo arquivo
-    public static class Veterinario implements Serializable {
-        private int idVeterinario;
-        private String nome;
-        private String crmv;
-        private String especialidade;
-
-        public Veterinario(int idVeterinario, String nome, String crmv, String especialidade) {
-            this.idVeterinario = idVeterinario;
-            this.nome = nome;
-            this.crmv = crmv;
-            this.especialidade = especialidade;
-        }
-
-        public int getIdVeterinario() { return idVeterinario; }
-        public void setIdVeterinario(int idVeterinario) { this.idVeterinario = idVeterinario; }
-
-        public String getNome() { return nome; }
-        public void setNome(String nome) { this.nome = nome; }
-
-        public String getCrmv() { return crmv; }
-        public void setCrmv(String crmv) { this.crmv = crmv; }
-
-        public String getEspecialidade() { return especialidade; }
-        public void setEspecialidade(String especialidade) { this.especialidade = especialidade; }
     }
 }

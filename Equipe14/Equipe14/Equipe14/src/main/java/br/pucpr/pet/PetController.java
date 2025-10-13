@@ -14,22 +14,22 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-import java.io.*;
+import java.io.IOException;
 import java.time.Year;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class PetController extends Application {
 
-    private static final String ARQUIVO_DE_DADOS = "pets.dat";
     private final int ANO_ATUAL = Year.now().getValue();
 
-    private ObservableList<Pet> petList = FXCollections.observableArrayList();
-    private TableView<Pet> tableView = new TableView<>();
+    private final ObservableList<Pet> petList = FXCollections.observableArrayList();
+    private final TableView<Pet> tableView = new TableView<>();
     private TextField txtNome, txtEspecie, txtRaca, txtAnoNascimento, txtPeso, txtIdTutor, txtNomeTutor;
     private ComboBox<String> cmbSexo;
     private int nextId = 1;
+
+    private final PetDataManager dataManager = PetDataManager.getInstance();
 
     @Override
     public void start(Stage primaryStage) {
@@ -65,20 +65,16 @@ public class PetController extends Application {
     }
 
     private void salvarDados() {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(ARQUIVO_DE_DADOS))) {
-            oos.writeObject(new ArrayList<>(petList));
+        try {
+            dataManager.salvarDados(petList);
         } catch (IOException e) {
             mostrarErro("Falha ao salvar os dados: " + e.getMessage());
         }
     }
 
-    @SuppressWarnings("unchecked")
     private void carregarDados() {
-        File arquivo = new File(ARQUIVO_DE_DADOS);
-        if (!arquivo.exists()) return;
-
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(ARQUIVO_DE_DADOS))) {
-            List<Pet> petsCarregados = (List<Pet>) ois.readObject();
+        try {
+            List<Pet> petsCarregados = dataManager.carregarDados();
             petList.setAll(petsCarregados);
             if (!petList.isEmpty()) {
                 nextId = petList.stream().mapToInt(Pet::getIdPet).max().orElse(0) + 1;
@@ -279,8 +275,8 @@ public class PetController extends Application {
             erros.append("- ID do Tutor deve ser um número válido.\n");
         }
 
-        if (erros.length() > 0) {
-            mostrarErro("Corrija os seguintes erros:\n\n" + erros.toString());
+        if (!erros.isEmpty()) {
+            mostrarErro("Corrija os seguintes erros:\n\n" + erros);
             return false;
         }
         return true;
