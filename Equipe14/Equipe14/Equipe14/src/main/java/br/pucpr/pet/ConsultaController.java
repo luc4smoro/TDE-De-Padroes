@@ -1,6 +1,8 @@
 package br.pucpr.pet;
 
 import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -8,14 +10,16 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
-public class ConsultaCRUDApp extends Application {
+public class ConsultaController extends Application {
 
-    private ConsultaDAO consultaDAO = new ConsultaDAO();
+    private final ObservableList<Consulta> listaConsultas = FXCollections.observableArrayList();
+    private final ConsultaDataManager dataManager = ConsultaDataManager.getInstance();
     private TableView<Consulta> tabelaConsultas = new TableView<>();
 
     // Campos de entrada
@@ -166,22 +170,25 @@ public class ConsultaCRUDApp extends Application {
 
     private void inserirConsulta() {
         try {
-            Consulta consulta = criarConsultaDoFormulario();
+            Consulta novaConsulta = criarConsultaDoFormulario();
 
-            // Gerar ID automático
-            List<Consulta> consultas = consultaDAO.listarTodas();
-            int novoId = consultas.stream()
+            List<Consulta> consultasExistentes = dataManager.carregarConsultas();
+            int novoId = consultasExistentes.stream()
                     .mapToInt(Consulta::getId_consulta)
                     .max()
                     .orElse(0) + 1;
-            consulta.setId_consulta(novoId);
+            novaConsulta.setId_consulta(novoId);
 
-            consultaDAO.inserir(consulta);
+            consultasExistentes.add(novaConsulta);
+            dataManager.salvarConsultas(consultasExistentes);
+
             mostrarSucesso("Consulta inserida com sucesso!");
             limparFormulario();
             atualizarTabela();
 
-        } catch (Exception ex) {
+        } catch (IllegalArgumentException ex) {
+            mostrarAviso(ex.getMessage());
+        } catch (IOException | ClassNotFoundException ex) {
             mostrarErro("Erro ao inserir consulta: " + ex.getMessage());
         }
     }
@@ -193,12 +200,21 @@ public class ConsultaCRUDApp extends Application {
                 return;
             }
 
-            Consulta consulta = criarConsultaDoFormulario();
-            consulta.setId_consulta(Integer.parseInt(txtId.getText()));
+            Consulta consultaAtualizada = criarConsultaDoFormulario();
+            consultaAtualizada.setId_consulta(Integer.parseInt(txtId.getText()));
 
-            boolean sucesso = consultaDAO.atualizar(consulta);
+            List<Consulta> consultasExistentes = dataManager.carregarConsultas();
+            boolean encontrada = false;
+            for (int i = 0; i < consultasExistentes.size(); i++) {
+                if (consultasExistentes.get(i).getId_consulta() == consultaAtualizada.getId_consulta()) {
+                    consultasExistentes.set(i, consultaAtualizada);
+                    encontrada = true;
+                    break;
+                }
+            }
 
-            if (sucesso) {
+            if (encontrada) {
+                dataManager.salvarConsultas(consultasExistentes);
                 mostrarSucesso("Consulta atualizada com sucesso!");
                 limparFormulario();
                 atualizarTabela();
@@ -206,7 +222,9 @@ public class ConsultaCRUDApp extends Application {
                 mostrarErro("Consulta não encontrada!");
             }
 
-        } catch (Exception ex) {
+        } catch (IllegalArgumentException ex) {
+            mostrarAviso(ex.getMessage());
+        } catch (IOException | ClassNotFoundException ex) {
             mostrarErro("Erro ao atualizar consulta: " + ex.getMessage());
         }
     }
@@ -225,10 +243,13 @@ public class ConsultaCRUDApp extends Application {
 
             Optional<ButtonType> resultado = confirmacao.showAndWait();
             if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
-                int id = Integer.parseInt(txtId.getText());
-                boolean sucesso = consultaDAO.excluir(id);
+                int idParaExcluir = Integer.parseInt(txtId.getText());
 
-                if (sucesso) {
+                List<Consulta> consultasExistentes = dataManager.carregarConsultas();
+                boolean removido = consultasExistentes.removeIf(c -> c.getId_consulta() == idParaExcluir);
+
+                if (removido) {
+                    dataManager.salvarConsultas(consultasExistentes);
                     mostrarSucesso("Consulta excluída com sucesso!");
                     limparFormulario();
                     atualizarTabela();
@@ -237,11 +258,12 @@ public class ConsultaCRUDApp extends Application {
                 }
             }
 
-        } catch (Exception ex) {
+        } catch (IllegalArgumentException ex) {
+            mostrarAviso(ex.getMessage());
+        } catch (IOException | ClassNotFoundException ex) {
             mostrarErro("Erro ao excluir consulta: " + ex.getMessage());
         }
     }
-
 
     private Consulta criarConsultaDoFormulario() {
         // Validações básicas
@@ -294,10 +316,10 @@ public class ConsultaCRUDApp extends Application {
 
     private void atualizarTabela() {
         try {
-            List<Consulta> consultas = consultaDAO.listarTodas();
-            tabelaConsultas.getItems().clear();
-            tabelaConsultas.getItems().addAll(consultas);
-        } catch (Exception ex) {
+            List<Consulta> consultas = dataManager.carregarConsultas();
+            listaConsultas.setAll(consultas);
+            tabelaConsultas.setItems(listaConsultas);
+        } catch (IOException | ClassNotFoundException ex) {
             mostrarErro("Erro ao carregar consultas: " + ex.getMessage());
         }
     }
@@ -326,7 +348,6 @@ public class ConsultaCRUDApp extends Application {
         alert.showAndWait();
     }
 
-    // Método main para executar a aplicação
     public static void main(String[] args) {
         launch(args);
     }

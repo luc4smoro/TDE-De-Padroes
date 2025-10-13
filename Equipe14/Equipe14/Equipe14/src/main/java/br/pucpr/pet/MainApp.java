@@ -63,10 +63,10 @@ public class MainApp extends Application {
         Button btnConsulta = new Button("Criar Consulta");
         btnConsulta.setPrefWidth(200);
         btnConsulta.setOnAction(_ -> {
-            ConsultaCRUDApp consultaCRUDApp = new ConsultaCRUDApp();
+            ConsultaController consultaController = new ConsultaController();
             Stage consultaStage = new Stage();
             try {
-                consultaCRUDApp.start(consultaStage);
+                consultaController.start(consultaStage);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
