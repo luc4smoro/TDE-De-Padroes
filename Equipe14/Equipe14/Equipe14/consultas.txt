@@ -1,0 +1,6 @@
+# Arquivo de Consultas Veterinárias
+# Formato: ID_CONSULTA|ID_PET|ID_VETERINARIO|DATA_HORA|HORA
+# Data: 13/06/2025 19:00:53
+# Total de consultas: 1
+
+2|3|4|14/06/2025 00:00:00|15:50
