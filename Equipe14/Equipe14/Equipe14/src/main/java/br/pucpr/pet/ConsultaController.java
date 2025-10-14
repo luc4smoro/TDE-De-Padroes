@@ -83,6 +83,7 @@ public class ConsultaController extends Application {
         cmbStatus.setPromptText("Selecione o Status");
         cmbStatus.setValue(StatusConsulta.CRIADA); // Valor padrão
         cmbStatus.setMaxWidth(Double.MAX_VALUE);
+        cmbStatus.setDisable(true); // Desabilitado por padrão
 
         // Campos do formulário
         formulario.getChildren().addAll(
@@ -307,7 +308,8 @@ public class ConsultaController extends Application {
         if (txtHora.getText().trim().isEmpty()) {
             throw new IllegalArgumentException("Hora é obrigatória!");
         }
-        if (cmbStatus.getValue() == null) {
+        // A validação de status nulo só se aplica na atualização
+        if (!txtId.getText().trim().isEmpty() && cmbStatus.getValue() == null) {
             throw new IllegalArgumentException("Status é obrigatório!");
         }
 
@@ -320,7 +322,13 @@ public class ConsultaController extends Application {
         consulta.setData(dataHora);
 
         consulta.setHora(txtHora.getText().trim());
-        consulta.setStatus(cmbStatus.getValue());
+
+        // Se for uma nova consulta (sem ID), o status é sempre CRIADA
+        if (txtId.getText().trim().isEmpty()) {
+            consulta.setStatus(StatusConsulta.CRIADA);
+        } else {
+            consulta.setStatus(cmbStatus.getValue());
+        }
 
         return consulta;
     }
@@ -337,6 +345,7 @@ public class ConsultaController extends Application {
         txtHora.setText(consulta.getHora());
         // Garante que o status não é nulo ao preencher o ComboBox
         cmbStatus.setValue(consulta.getStatus() != null ? consulta.getStatus() : StatusConsulta.CRIADA);
+        cmbStatus.setDisable(true); // Mantém o status desabilitado
     }
 
     private void limparFormulario() {
@@ -346,6 +355,7 @@ public class ConsultaController extends Application {
         datePicker.setValue(null);
         txtHora.clear();
         cmbStatus.setValue(StatusConsulta.CRIADA); // Resetar para o status padrão
+        cmbStatus.setDisable(true); // Desabilita na criação de nova consulta
         tabelaConsultas.getSelectionModel().clearSelection();
     }
 
