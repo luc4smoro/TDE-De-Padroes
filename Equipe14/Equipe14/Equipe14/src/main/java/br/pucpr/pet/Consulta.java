@@ -3,6 +3,8 @@ package br.pucpr.pet;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Consulta implements Serializable {
     private static final long serialVersionUID = 1L; // Manter para compatibilidade de serialização
@@ -17,14 +19,14 @@ public class Consulta implements Serializable {
     // Novos campos para o fluxo de estados
     private LocalDateTime dataInicioReal; // Data e hora real de início da consulta
     private LocalDateTime dataFimReal;    // Data e hora real de fim da consulta
-    private String observacoes;           // Observações rápidas durante o atendimento ou gerais
+    private Map<StatusConsulta, String> observacoesPorStatus;           // Observações rápidas durante o atendimento ou gerais
     private String motivoCancelamento;    // Motivo se a consulta for cancelada
     private int contadorReagendamentos;   // Quantas vezes a consulta foi reagendada
     private LocalDateTime dataCancelamento; // Data e hora do cancelamento
 
     public Consulta() {
         this.status = StatusConsulta.CRIADA;
-        this.observacoes = "";
+        this.observacoesPorStatus = new HashMap<>();
         this.motivoCancelamento = "";
         this.contadorReagendamentos = 0;
     }
@@ -40,7 +42,7 @@ public class Consulta implements Serializable {
         this.data = data;
         this.hora = hora;
         this.status = status;
-        this.observacoes = "";
+        this.observacoesPorStatus = new HashMap<>();
         this.motivoCancelamento = "";
         this.contadorReagendamentos = 0;
     }
@@ -71,8 +73,27 @@ public class Consulta implements Serializable {
     public LocalDateTime getDataFimReal() { return dataFimReal; }
     public void setDataFimReal(LocalDateTime dataFimReal) { this.dataFimReal = dataFimReal; }
 
-    public String getObservacoes() { return observacoes; }
-    public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
+    public String getObservacoes() {
+        return getObservacoes(this.status);
+    }
+
+    public String getObservacoes(StatusConsulta status) {
+        if (this.observacoesPorStatus == null) {
+            this.observacoesPorStatus = new HashMap<>();
+        }
+        return observacoesPorStatus.getOrDefault(status, "");
+    }
+
+    public void setObservacoes(String observacoes) {
+        setObservacoes(this.status, observacoes);
+    }
+
+    public void setObservacoes(StatusConsulta status, String observacoes) {
+        if (this.observacoesPorStatus == null) {
+            this.observacoesPorStatus = new HashMap<>();
+        }
+        this.observacoesPorStatus.put(status, observacoes);
+    }
 
     public String getMotivoCancelamento() { return motivoCancelamento; }
     public void setMotivoCancelamento(String motivoCancelamento) { this.motivoCancelamento = motivoCancelamento; }
