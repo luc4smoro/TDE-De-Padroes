@@ -35,7 +35,7 @@ public class FinalizadaState implements ConsultaState {
 
     @Override
     public void abrirFichaAtendimento(Consulta consulta, ConsultaController controller, Stage fluxoStage) {
-        controller.abrirDiagnosticoController(); // Pode abrir para visualização ou edição se reaberta
+        controller.abrirDiagnosticoController(consulta.getId_consulta()); // Pode abrir para visualização ou edição se reaberta
     }
 
     @Override

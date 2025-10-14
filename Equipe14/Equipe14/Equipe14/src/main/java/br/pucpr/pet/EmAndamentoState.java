@@ -36,7 +36,7 @@ public class EmAndamentoState implements ConsultaState {
 
     @Override
     public void abrirFichaAtendimento(Consulta consulta, ConsultaController controller, Stage fluxoStage) {
-        controller.abrirDiagnosticoController(); // Chama o método para abrir a tela de diagnóstico
+        controller.abrirDiagnosticoController(consulta.getId_consulta()); // Chama o método para abrir a tela de diagnóstico
     }
 
     @Override

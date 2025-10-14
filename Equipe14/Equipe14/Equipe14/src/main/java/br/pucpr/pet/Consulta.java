@@ -1,5 +1,7 @@
 package br.pucpr.pet;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -78,8 +80,8 @@ public class Consulta implements Serializable {
     }
 
     public String getObservacoes(StatusConsulta status) {
-        if (this.observacoesPorStatus == null) {
-            this.observacoesPorStatus = new HashMap<>();
+        if (observacoesPorStatus == null) {
+            observacoesPorStatus = new HashMap<>();
         }
         return observacoesPorStatus.getOrDefault(status, "");
     }
@@ -89,8 +91,8 @@ public class Consulta implements Serializable {
     }
 
     public void setObservacoes(StatusConsulta status, String observacoes) {
-        if (this.observacoesPorStatus == null) {
-            this.observacoesPorStatus = new HashMap<>();
+        if (observacoesPorStatus == null) {
+            observacoesPorStatus = new HashMap<>();
         }
         this.observacoesPorStatus.put(status, observacoes);
     }
@@ -104,6 +106,13 @@ public class Consulta implements Serializable {
 
     public LocalDateTime getDataCancelamento() { return dataCancelamento; }
     public void setDataCancelamento(LocalDateTime dataCancelamento) { this.dataCancelamento = dataCancelamento; }
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        if (observacoesPorStatus == null) {
+            observacoesPorStatus = new HashMap<>();
+        }
+    }
 
 
     @Override

@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import br.pucpr.pet.StatusConsulta;
 
@@ -395,10 +396,14 @@ public class ConsultaController extends Application {
         Label lblTitulo = new Label("Gerenciar Fluxo da Consulta");
         lblTitulo.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
+        // Combina data e hora para exibição correta
+        LocalDateTime dataHoraAgendada = getCombinedDateTime(consulta);
+        String dataAgendadaStr = (dataHoraAgendada != null) ? dataHoraAgendada.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "N/A";
+
         Label lblDetalhes = new Label(
                 "Pet: " + consulta.getId_pet() +
                 " | Veterinário: " + consulta.getId_veterinario() +
-                " | Agendado para: " + (consulta.getData() != null ? consulta.getData().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "N/A")
+                " | Agendado para: " + dataAgendadaStr
         );
         lblDetalhes.setStyle("-fx-font-size: 14px;");
 
@@ -458,26 +463,21 @@ public class ConsultaController extends Application {
         Label lblStatus = new Label("Status Atual: " + consulta.getStatus().getDescricao());
         lblStatus.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
-        // Data e hora previstas
-        Label lblPrevisao = new Label("Previsão: " + (consulta.getData() != null ? consulta.getData().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "N/A"));
+        // Combina data e hora para exibição e cálculo corretos
+        LocalDateTime dataHoraAgendada = getCombinedDateTime(consulta);
 
-        // Contador de dias desde a marcação (assumindo que 'data' é a data de marcação)
-        String diasMarcada = "N/A";
-        if (consulta.getData() != null) {
-            Duration duration = Duration.between(consulta.getData(), LocalDateTime.now());
-            long days = duration.toDays();
-            diasMarcada = days + " dia(s)";
-        }
-        Label lblContador = new Label("Consulta marcada há: " + diasMarcada);
+        // Data e hora previstas
+        String previsaoStr = (dataHoraAgendada != null) ? dataHoraAgendada.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "N/A";
+        Label lblPrevisao = new Label("Data: " + previsaoStr);
 
         // Campo para observações (edição)
-        TextArea txtObservacoes = new TextArea(consulta.getObservacoes() != null ? consulta.getObservacoes() : "");
+        TextArea txtObservacoes = new TextArea(consulta.getObservacoes(StatusConsulta.CRIADA));
         txtObservacoes.setPromptText("Adicionar observações rápidas...");
         txtObservacoes.setPrefRowCount(2);
 
         Button btnSalvarObs = new Button("Salvar Observação");
         btnSalvarObs.setOnAction(e -> {
-            consulta.setObservacoes(txtObservacoes.getText());
+            consulta.setObservacoes(StatusConsulta.CRIADA, txtObservacoes.getText());
             atualizarConsultaNoDataManager(consulta, fluxoStage);
         });
 
@@ -497,7 +497,7 @@ public class ConsultaController extends Application {
 
         botoesAcao.getChildren().addAll(btnIniciar, btnCancelar, btnReagendar);
 
-        layout.getChildren().addAll(lblStatus, lblPrevisao, lblContador, new Label("Observações:"), txtObservacoes, btnSalvarObs, botoesAcao);
+        layout.getChildren().addAll(lblStatus, lblPrevisao, new Label("Observações:"), txtObservacoes, btnSalvarObs, botoesAcao);
         return layout;
     }
 
@@ -519,13 +519,13 @@ public class ConsultaController extends Application {
         Label lblTempoDecorrido = new Label("Em atendimento há: " + tempoDecorrido);
 
         // Campo para observações rápidas
-        TextArea txtObservacoes = new TextArea(consulta.getObservacoes() != null ? consulta.getObservacoes() : "");
+        TextArea txtObservacoes = new TextArea(consulta.getObservacoes(StatusConsulta.EM_ANDAMENTO));
         txtObservacoes.setPromptText("Observações durante o atendimento...");
         txtObservacoes.setPrefRowCount(3);
 
         Button btnSalvarObs = new Button("Salvar Observação");
         btnSalvarObs.setOnAction(e -> {
-            consulta.setObservacoes(txtObservacoes.getText());
+            consulta.setObservacoes(StatusConsulta.EM_ANDAMENTO, txtObservacoes.getText());
             atualizarConsultaNoDataManager(consulta, fluxoStage);
         });
 
@@ -536,7 +536,7 @@ public class ConsultaController extends Application {
         Button btnFinalizar = new Button("✅ Finalizar Consulta");
         Button btnCancelar = new Button("❌ Cancelar");
 
-        btnAbrirDiagnostico.setOnAction(e -> abrirDiagnosticoController());
+        btnAbrirDiagnostico.setOnAction(e -> abrirDiagnosticoController(consulta.getId_consulta()));
         btnFinalizar.setOnAction(e -> {
             consulta.setDataFimReal(LocalDateTime.now()); // Registra o fim real
             atualizarStatusConsulta(consulta, StatusConsulta.FINALIZADA, fluxoStage);
@@ -562,14 +562,14 @@ public class ConsultaController extends Application {
                 " | Fim: " + (consulta.getDataFimReal() != null ? consulta.getDataFimReal().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "N/A")
         );
 
-        // TODO: Adicionar nome do veterinário (necessitaria carregar dados do VeterinarioController)
         Label lblVeterinario = new Label("Veterinário ID: " + consulta.getId_veterinario());
 
-        // TODO: Adicionar Diagnóstico e Prescrições (necessitaria carregar dados do DiagnosticoController)
-        Label lblDiagnostico = new Label("Diagnóstico: [Não implementado]");
-        Label lblPrescricoes = new Label("Prescrições: [Não implementado]");
+        // Carregar diagnóstico
+        Optional<Diagnostico> diagnosticoOpt = carregarDiagnosticoDaConsulta(consulta.getId_consulta());
+        String nomeDiagnostico = diagnosticoOpt.map(Diagnostico::getNomeDiagnostico).orElse("[Não encontrado]");
+        String prescricoes = diagnosticoOpt.map(Diagnostico::getMedicamentosPrescritos).orElse("[Não encontrado]");
 
-        TextArea txtObservacoes = new TextArea(consulta.getObservacoes() != null ? consulta.getObservacoes() : "");
+        TextArea txtObservacoes = new TextArea(consulta.getObservacoes(StatusConsulta.FINALIZADA));
         txtObservacoes.setEditable(false);
         txtObservacoes.setPrefRowCount(3);
 
@@ -577,16 +577,14 @@ public class ConsultaController extends Application {
         botoesAcao.setAlignment(Pos.CENTER);
 
         Button btnGerarRelatorio = new Button("📄 Gerar Relatório");
-        Button btnVisualizarDiagnostico = new Button("👁️ Visualizar Diagnóstico");
         Button btnReabrir = new Button("↩️ Reabrir Consulta");
 
-        btnGerarRelatorio.setOnAction(e -> mostrarAlerta("Funcionalidade", "Gerar Relatório/Recibo - Não implementado."));
-        btnVisualizarDiagnostico.setOnAction(e -> mostrarAlerta("Funcionalidade", "Visualizar Diagnóstico - Não implementado."));
-        btnReabrir.setOnAction(e -> atualizarStatusConsulta(consulta, StatusConsulta.EM_ANDAMENTO, fluxoStage));
+        btnGerarRelatorio.setOnAction(e -> gerarRelatorio(consulta, diagnosticoOpt));
+         btnReabrir.setOnAction(e -> atualizarStatusConsulta(consulta, StatusConsulta.EM_ANDAMENTO, fluxoStage));
 
-        botoesAcao.getChildren().addAll(btnGerarRelatorio, btnVisualizarDiagnostico, btnReabrir);
+        botoesAcao.getChildren().addAll(btnGerarRelatorio, btnReabrir);
 
-        layout.getChildren().addAll(lblStatus, lblInicioFim, lblVeterinario, lblDiagnostico, lblPrescricoes, new Label("Observações:"), txtObservacoes, botoesAcao);
+        layout.getChildren().addAll(lblStatus, lblInicioFim, lblVeterinario, new Label("Observações:"), txtObservacoes, botoesAcao);
         return layout;
     }
 
@@ -624,7 +622,10 @@ public class ConsultaController extends Application {
         lblStatus.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
         Label lblContador = new Label("Reagendada " + consulta.getContadorReagendamentos() + " vez(es).");
-        Label lblNovaData = new Label("Nova Data/Hora: " + (consulta.getData() != null ? consulta.getData().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "N/A"));
+        
+        LocalDateTime dataHoraAgendada = getCombinedDateTime(consulta);
+        String novaDataStr = (dataHoraAgendada != null) ? dataHoraAgendada.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "N/A";
+        Label lblNovaData = new Label("Nova Data/Hora: " + novaDataStr);
 
         HBox botoesAcao = new HBox(10);
         botoesAcao.setAlignment(Pos.CENTER);
@@ -755,11 +756,129 @@ public class ConsultaController extends Application {
         });
     }
 
-    public void abrirDiagnosticoController() {
-        // TODO: Implementar a abertura do DiagnosticoController
-        mostrarAviso("Funcionalidade 'Abrir Ficha de Atendimento' (Diagnóstico) não implementada ainda.");
-        // Exemplo: new DiagnosticoController().start(new Stage());
+    public void abrirDiagnosticoController(int consultaId) {
+        try {
+            DiagnosticoController diagnosticoController = new DiagnosticoController();
+            diagnosticoController.setInitialConsultaId(consultaId);
+            Stage stage = new Stage();
+            diagnosticoController.start(stage);
+        } catch (Exception e) {
+            mostrarErro("Erro ao abrir a ficha de atendimento: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
+
+    private Optional<Diagnostico> carregarDiagnosticoDaConsulta(int consultaId) {
+        try {
+            List<Diagnostico> todosDiagnosticos = DiagnosticoDataManager.getInstance().carregarDiagnosticos();
+            return todosDiagnosticos.stream()
+                    .filter(d -> d.getId_consulta() == consultaId)
+                    .findFirst();
+        } catch (IOException | ClassNotFoundException e) {
+            mostrarErro("Erro ao carregar diagnóstico: " + e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private void visualizarDiagnostico(Optional<Diagnostico> diagnosticoOpt) {
+        if (diagnosticoOpt.isPresent()) {
+            Diagnostico d = diagnosticoOpt.get();
+            String detalhes = String.format(
+                "ID do Diagnóstico: %d\n" +
+                "Nome: %s\n" +
+                "Data: %s\n" +
+                "Tratamento: %s\n" +
+                "Medicamentos: %s",
+                d.getId_diagnostico(),
+                d.getNomeDiagnostico(),
+                d.getDataDiagnostico().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                d.getTratamento(),
+                d.getMedicamentosPrescritos()
+            );
+            mostrarAlerta("Detalhes do Diagnóstico", detalhes);
+        } else {
+            mostrarAviso("Nenhum diagnóstico encontrado para esta consulta.");
+        }
+    }
+
+    private void gerarRelatorio(Consulta consulta, Optional<Diagnostico> diagnosticoOpt) {
+        StringBuilder relatorio = new StringBuilder();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        relatorio.append("--- Relatório da Consulta ---\n");
+        relatorio.append("ID da Consulta: ").append(consulta.getId_consulta()).append("\n");
+        relatorio.append("ID do Pet: ").append(consulta.getId_pet()).append("\n");
+        relatorio.append("ID do Veterinário: ").append(consulta.getId_veterinario()).append("\n");
+        relatorio.append("Status: ").append(consulta.getStatus().getDescricao()).append("\n\n");
+
+        relatorio.append("--- Histórico ---\n");
+        LocalDateTime dataHoraAgendada = getCombinedDateTime(consulta);
+        relatorio.append("Agendado para: ").append(dataHoraAgendada != null ? dataHoraAgendada.format(formatter) : "N/A").append("\n");
+        relatorio.append("Início Real: ").append(consulta.getDataInicioReal() != null ? consulta.getDataInicioReal().format(formatter) : "N/A").append("\n");
+        relatorio.append("Fim Real: ").append(consulta.getDataFimReal() != null ? consulta.getDataFimReal().format(formatter) : "N/A").append("\n");
+
+        if (consulta.getStatus() == StatusConsulta.CANCELADA) {
+            relatorio.append("Cancelada em: ").append(consulta.getDataCancelamento() != null ? consulta.getDataCancelamento().format(formatter) : "N/A").append("\n");
+            relatorio.append("Motivo: ").append(consulta.getMotivoCancelamento()).append("\n");
+        }
+
+        relatorio.append("\n--- Observações ---\n");
+        String obsCriada = consulta.getObservacoes(StatusConsulta.CRIADA);
+        if (!obsCriada.isEmpty()) {
+            relatorio.append("Na Criação: ").append(obsCriada).append("\n");
+        }
+        String obsEmAndamento = consulta.getObservacoes(StatusConsulta.EM_ANDAMENTO);
+        if (!obsEmAndamento.isEmpty()) {
+            relatorio.append("Em Andamento: ").append(obsEmAndamento).append("\n");
+        }
+        String obsFinalizada = consulta.getObservacoes(StatusConsulta.FINALIZADA);
+        if (!obsFinalizada.isEmpty()) {
+            relatorio.append("Na Finalização: ").append(obsFinalizada).append("\n");
+        }
+
+        relatorio.append("\n--- Diagnóstico ---\n");
+        if (diagnosticoOpt.isPresent()) {
+            Diagnostico d = diagnosticoOpt.get();
+            relatorio.append("Nome: ").append(d.getNomeDiagnostico()).append("\n");
+            relatorio.append("Data: ").append(d.getDataDiagnostico().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))).append("\n");
+            relatorio.append("Tratamento: ").append(d.getTratamento()).append("\n");
+            relatorio.append("Medicamentos: ").append(d.getMedicamentosPrescritos()).append("\n");
+        } else {
+            relatorio.append("Nenhum diagnóstico registrado para esta consulta.\n");
+        }
+
+        // Exibir o relatório em um diálogo com área de texto
+        TextArea textArea = new TextArea(relatorio.toString());
+        textArea.setEditable(false);
+        textArea.setWrapText(true);
+
+        GridPane gridPane = new GridPane();
+        gridPane.setMaxWidth(Double.MAX_VALUE);
+        gridPane.add(textArea, 0, 0);
+
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Relatório da Consulta");
+        alert.setHeaderText("Relatório completo da consulta ID: " + consulta.getId_consulta());
+        alert.getDialogPane().setContent(gridPane);
+        alert.setResizable(true);
+        alert.showAndWait();
+    }
+
+    private LocalDateTime getCombinedDateTime(Consulta consulta) {
+        if (consulta.getData() != null && consulta.getHora() != null && !consulta.getHora().isEmpty()) {
+            try {
+                String[] partesHora = consulta.getHora().split(":");
+                int hora = Integer.parseInt(partesHora[0]);
+                int minuto = Integer.parseInt(partesHora[1]);
+                return consulta.getData().toLocalDate().atTime(hora, minuto);
+            } catch (Exception e) {
+                // Em caso de erro no parsing da hora, retorna apenas a data
+                return consulta.getData().toLocalDate().atStartOfDay();
+            }
+        }
+        return null;
+    }
+
 
     // Método auxiliar para mostrar alertas de informação
     public void mostrarAlerta(String titulo, String mensagem) {
