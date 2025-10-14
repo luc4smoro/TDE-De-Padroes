@@ -169,9 +169,9 @@ public class ConsultaController extends Application {
                 }
         );
 
-        // Evento de clique simples para abrir o fluxo de estados
+        // Evento de clique duplo para abrir o fluxo de estados
         tabelaConsultas.setOnMouseClicked(event -> {
-            if (event.getClickCount() == 1 && event.getButton() == MouseButton.PRIMARY) { // Alterado para clique simples
+            if (event.getClickCount() == 2 && event.getButton() == MouseButton.PRIMARY) {
                 Consulta selectedConsulta = tabelaConsultas.getSelectionModel().getSelectedItem();
                 if (selectedConsulta != null) {
                     abrirFluxoConsulta(selectedConsulta);
