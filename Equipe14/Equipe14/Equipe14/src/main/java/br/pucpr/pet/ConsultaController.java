@@ -358,7 +358,7 @@ public class ConsultaController extends Application {
         }
     }
 
-    private void mostrarSucesso(String mensagem) {
+    public void mostrarSucesso(String mensagem) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Sucesso");
         alert.setHeaderText(null);
@@ -366,7 +366,7 @@ public class ConsultaController extends Application {
         alert.showAndWait();
     }
 
-    private void mostrarErro(String mensagem) {
+    public void mostrarErro(String mensagem) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Erro");
         alert.setHeaderText(null);
@@ -374,7 +374,7 @@ public class ConsultaController extends Application {
         alert.showAndWait();
     }
 
-    private void mostrarAviso(String mensagem) {
+    public void mostrarAviso(String mensagem) {
         Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle("Aviso");
         alert.setHeaderText(null);
@@ -641,7 +641,7 @@ public class ConsultaController extends Application {
         return layout;
     }
 
-    private void atualizarStatusConsulta(Consulta consulta, StatusConsulta novoStatus, Stage fluxoStage) {
+    public void atualizarStatusConsulta(Consulta consulta, StatusConsulta novoStatus, Stage fluxoStage) {
         try {
             consulta.setStatus(novoStatus);
             List<Consulta> consultasExistentes = dataManager.carregarConsultas();
@@ -668,7 +668,7 @@ public class ConsultaController extends Application {
         }
     }
 
-    private void atualizarConsultaNoDataManager(Consulta consulta, Stage fluxoStage) {
+    public void atualizarConsultaNoDataManager(Consulta consulta, Stage fluxoStage) {
         try {
             List<Consulta> consultasExistentes = dataManager.carregarConsultas();
             boolean encontrada = false;
@@ -693,7 +693,7 @@ public class ConsultaController extends Application {
         }
     }
 
-    private void mostrarDialogoCancelamento(Consulta consulta, Stage fluxoStage) {
+    public void mostrarDialogoCancelamento(Consulta consulta, Stage fluxoStage) {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Cancelar Consulta");
         dialog.setHeaderText("Informe o motivo do cancelamento da consulta ID: " + consulta.getId_consulta());
@@ -707,7 +707,7 @@ public class ConsultaController extends Application {
         });
     }
 
-    private void mostrarDialogoReagendamento(Consulta consulta, Stage fluxoStage) {
+    public void mostrarDialogoReagendamento(Consulta consulta, Stage fluxoStage) {
         Dialog<LocalDateTime> dialog = new Dialog<>();
         dialog.setTitle("Reagendar Consulta");
         dialog.setHeaderText("Selecione a nova data e hora para a consulta ID: " + consulta.getId_consulta());
@@ -755,14 +755,14 @@ public class ConsultaController extends Application {
         });
     }
 
-    private void abrirDiagnosticoController() {
+    public void abrirDiagnosticoController() {
         // TODO: Implementar a abertura do DiagnosticoController
         mostrarAviso("Funcionalidade 'Abrir Ficha de Atendimento' (Diagnóstico) não implementada ainda.");
         // Exemplo: new DiagnosticoController().start(new Stage());
     }
 
     // Método auxiliar para mostrar alertas de informação
-    private void mostrarAlerta(String titulo, String mensagem) {
+    public void mostrarAlerta(String titulo, String mensagem) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(titulo);
         alert.setHeaderText(null);
